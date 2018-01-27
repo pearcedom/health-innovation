@@ -1,0 +1,115 @@
+---
+title: Data Synth
+author: Dominic Pearce
+output: github_document
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.align = 'center')
+```
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+source("../lib/models_R.r")
+```
+
+
+### Age
+
+#### So we'll want to divide our age demographic into male and female. Then we just say that the distribution is largely a couple of normal distributions spanning an age range next to one another as from [this website](http://www.gov.scot/Topics/People/Equality/Equalities/DataGrid/Age/AgePopMig)
+
+#### *edit:* actually, male and female age distributions are pretty much identical so we can consider them as a single group
+
+```{r}
+simAge <- function(n, sd = 12){
+    age_ranges <- list(16:40, 41:90)
+    age_vec <- sapply(age_ranges, function(x) rnorm(n, mean = mean(x), sd = sd)) %>% 
+        c() %>%
+        round()
+    age_vec[age_vec < 16 | age_vec > 90] <- NA
+    limits_vec <- as.vector(na.omit(age_vec))
+    sample(limits_vec, 1000)
+}
+```
+
+### Place of Birth
+
+#### We'll use a table from [council area population estimates](https://en.wikipedia.org/wiki/Demography_of_Scotland#Place_of_birth) from wikipedia
+
+```{r}
+simArea <- function(n){
+    cpop_dfr <- read.csv("../data/council-population.csv")
+    total_2011 <- sum(cpop_dfr$n_2011)
+    sample(cpop_dfr$local_council_area, 1000, replace = TRUE, prob = cpop_dfr$n_2011)
+}
+```
+
+### Alcohol use
+
+#### This will need to be divided by gender.
+
+```{r}
+alc_dfr <- read.csv("../data/alcohol.csv")
+
+simBinge <- function(age, sex){
+    prop = alc_dfr$prop[alc_dfr$age == age & alc_dfr$sex == gender]
+    sample(c(TRUE, FALSE), 1, prob = c(prop, 100-prop))
+}
+
+
+
+```
+
+### Physical Activity
+
+#### Using percentages from the Chief Medical Officer
+
+```{r}
+simActivity <- function(n){
+sample(c("low", "mid", "high"), n, replace = TRUE, prob = c(25.6, 13.7, 60.7))
+}
+```
+
+
+### Build the dataset
+
+
+```{r}
+set.seed(123)
+sim_dfr <- data.frame(
+                      age = simAge(1000),
+                      gender = sample(c("MALE", "FEMALE"), 1000, replace = TRUE),
+                      area = simArea(1000), 
+                      activity = simActivity(1000)
+                      )
+add_dfr <- lapply(1:nrow(sim_dfr), function(x){
+                            sub_dfr <- sim_dfr[x,]
+                            age <- sub_dfr$age
+                            gender <- as.character(sub_dfr$gender)
+                            data.frame(binge = simBinge(age, gender), 
+                                       stroke = predict_stroke(age, gender),
+                                       diabetes = predict_diabetes(age, gender),
+                                       cancer = predict_cancer(age, gender),
+                                       bmi = predict_bmi(age, gender)
+                                       )
+                      }) %>% do.call(rbind, .)
+sim_dfr <- cbind(sim_dfr, add_dfr)
+
+
+ggplot(sim_dfr, aes(x = age, fill = gender)) +
+    geom_density(alpha = 0.5) +
+    theme_pander()
+
+ggplot(sim_dfr, aes(x = area)) + 
+    geom_histogram(stat = 'count') + 
+    theme_pander() + 
+    theme(axis.text.x = element_text(angle = 90)) 
+
+ggplot(sim_dfr, aes(x = area, fill = activity)) + 
+    geom_bar(stat = 'count', position = 'dodge') + 
+    theme_pander() + 
+    theme(axis.text.x = element_text(angle = 90))
+
+ggplot(sim_dfr, aes(x = diabetes, y = bmi)) + geom_point() + geom_smooth(method = 'lm')
+```

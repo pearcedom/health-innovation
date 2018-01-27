@@ -1,0 +1,33 @@
+local_council_area,n_2001,n_2011,delta
+Aberdeen City,212125,222800,5
+Aberdeenshire,226871,253000,11.5
+Angus,108400,116000,7
+Argyll and Bute,91306,88200,?3.4
+Clackmannanshire,48077,51400,7
+Dumfries and Galloway,147765,151300,2.4
+Dundee City,145663,147300,1.1
+East Ayrshire,120235,122700,2.1
+East Dunbartonshire,108243,105000,?3.0
+East Lothian,90088,99700,10.7
+East Renfrewshire,89311,90600,1.4
+City of Edinburgh,448624,476600,6.2
+Na h-Eileanan Siar,26502,27700,4.5
+Falkirk,145191,156000,7.4
+Fife,349429,365200,4.5
+Glasgow City,577869,593200,2.7
+Highland,208914,232100,11.1
+Inverclyde,84203,81500,?3.2
+Midlothian,80941,83200,2.8
+Moray,86940,93300,7.3
+North Ayrshire,135817,138200,1.7
+North Lanarkshire,321067,337800,5.2
+Orkney Islands,19245,21400,10.9
+Perth and Kinross,134949,146700,8.7
+Renfrewshire,172867,174900,1.2
+Scottish Borders,106764,113900,6.7
+Shetland Islands,21988,23200,5.3
+South Ayrshire,112097,112800,0.6
+South Lanarkshire,302216,313800,3.8
+Stirling,86212,90200,4.7
+West Dunbartonshire,93378,90700,?2.8
+West Lothian,158714,175100,10.3
