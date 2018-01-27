@@ -9,11 +9,22 @@ read_data <- function(data_path="../output/sim_dfr.csv") {
 }
 
 
+make_area_encoder <- function() {
+    dataframe <- read_data()
+    formula <- sprintf("~ area")
+    encoder <- caret::dummyVars(formula, data=dataframe, fullRank=TRUE)
+    return(encoder)
+}
+
+
+encoder <- make_area_encoder()
+
+
 encode_area_col <- function(dataframe, area_col="area") {
     # one-hot encode area columns
-    # return area columns
-    formula <- sprintf("~%s", area_col)
+    formula <- sprintf("~ %s", area_col)
     encoder <- caret::dummyVars(formula, data=dataframe, fullRank=TRUE)
+    # return area columns
     data.frame(predict(encoder, dataframe))
 }
 
@@ -47,6 +58,7 @@ binarise_gender <- function(data, gender_col="gender") {
     return(data)
 }
 
+
 binarise_bools <- function(data, bool_cols=NULL) {
     # convert boolean columns to integers
     if (is.null(bool_cols)) {
@@ -73,14 +85,21 @@ scale_features <- function(dataframe, feature_cols=NULL) {
 }
 
 
-
-transform_data <- function() {
-    read_data() %>%
+transform_data <- function(data) {
+    # remove is_user_sample column from dataset
+    # as don't want to transform that
+    sample_col <- data$is_user_sample
+    data$is_user_sampe <- NULL
+    # transform data
+    data %>%
     encode_area() %>%
     binarise_gender() %>%
     binarise_bools() %>%
     activity_to_num() %>%
-    scale_features()
+    scale_features() -> transformed_data
+    # add is_user_sample column back in after transformations
+    transformed_data$is_user_sample <- sample_col
+    return(transformed_data)
 }
 
 
