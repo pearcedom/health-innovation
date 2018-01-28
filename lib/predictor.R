@@ -3,11 +3,11 @@
 library(magrittr)
 
 # import utils
-source("utils.R")
+source("utils.R", local = TRUE)
 
 
 example_sample <- function() {
-    dat <- read.csv("../output/sim_dfr.csv")
+    dat <- read.csv("./Data/sim_dfr.csv")
     dat[, 1] <- NULL
     row_sample <- dat[sample(1:nrow(dat), 1), ]
     row_sample$age <- sample(20:60, 1)

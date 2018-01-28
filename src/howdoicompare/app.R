@@ -6,11 +6,11 @@ library(wesanderson)
 cpop <- read.csv("./Data/council-population.csv")
 sim_dfr <- read.csv("./Data/sim_dfr.csv")
 
-trump_sample <- data.frame(X = NA, age = 71, gender = "MALE", area = "Aberdeen City", 
-                          activity = "low", binge = FALSE, stroke = FALSE, 
-                          diabetes = FALSE, cancer = FALSE, bmi = 30)
-user_sample <- trump_sample
-user_sample$is_user_sample <- TRUE
+#trump_sample <- data.frame(X = NA, age = 71, gender = "MALE", area = "Aberdeen City", 
+#                          activity = "low", binge = FALSE, stroke = FALSE, 
+#                          diabetes = FALSE, cancer = FALSE, bmi = 30)
+#user_sample <- trump_sample
+#user_sample$is_user_sample <- TRUE
 
 #trump_neighbours <- do.call(rbind, lapply(1:49, function(x) trump_sample))
 #trump_neighbours$stroke <- sample(c(TRUE, FALSE), 49, replace = TRUE, prob = c(0.6, 0.4))
@@ -26,10 +26,10 @@ timeTo <- function(age, disease){
     }
 }
 
-likelihoodOf <- function(disease){
+likelihoodOf <- function(disease, sim_sub, user_sample){
     overall_risk <- sum(sim_sub[[disease]]) / nrow(sim_sub) * 100 
     t_disease <- paste0("t_", disease)
-    year_risk <- sapply(c(5, 10, 20), function(years){
+    year_risk <- sapply(c(5, 10), function(years){
                             plus_year <- user_sample$age + years
                             sum(sim_sub[[t_disease]] <= plus_year, 
                                 na.rm = TRUE) / nrow(sim_sub) * 100 
@@ -42,7 +42,7 @@ ui = fluidPage(theme = "flatly.css",
                titlePanel("How do I compare?"),
                sidebarLayout(
                              sidebarPanel(
-                                          helpText("Welcome to How do you compare"),
+                                          helpText("Welcome to How do you compare!"),
                                           helpText("Fill in your details and health history to the 
                                                    best of your ability."),
                                           textInput(inputId = "age", 
@@ -91,19 +91,20 @@ ui = fluidPage(theme = "flatly.css",
 
 server = function(input, output){
     pal <- wes_palette("Moonrise3")
+    pal2 <- wes_palette("Zissou") 
     source("./Data/predictor.R", local = TRUE)
     source("./Data/utils.R", local = TRUE)
 
     observeEvent(input$go, {
-                     #user_sample <- data.frame(X = NA, age = as.numeric(input$age), 
-                     #                          gender = as.character(input$sex), 
-                     #                          area = as.character(input$area), 
-                     #                          activity = as.character(input$activity), 
-                     #                          binge = as.logical(input$binge), 
-                     #                          stroke = FALSE, 
-                     #                          diabetes = FALSE, 
-                     #                          cancer = FALSE, 
-                     #                          bmi = as.numeric(input$bmi))
+                     user_sample <- data.frame(X = NA, age = as.numeric(input$age), 
+                                               gender = as.character(input$sex), 
+                                               area = as.character(input$area), 
+                                               activity = as.character(input$activity), 
+                                               binge = as.logical(input$binge), 
+                                               stroke = FALSE, 
+                                               diabetes = FALSE, 
+                                               cancer = FALSE, 
+                                               bmi = as.numeric(input$bmi))
                      sim_dfr <- main(user_sample)
                      sim_dfr$t_stroke <- sapply(1:nrow(sim_dfr), function(x){
                                                     timeTo(sim_dfr$age[x],
@@ -119,21 +120,21 @@ server = function(input, output){
                                                })
 
                      sim_sub <- sim_dfr[1:(nrow(sim_dfr)/20),]
-                     sim_sub$stroke <- c(FALSE, 
-                                         sample(c(TRUE, FALSE), 
-                                                49, 
-                                                replace = TRUE, 
-                                                prob = c(0.6, 0.4)))
-                     sim_sub$diabetes <- c(FALSE, 
-                                           sample(c(TRUE, FALSE), 
-                                                  49, 
-                                                  replace = TRUE, 
-                                                  prob = c(0.6, 0.4)))
-                     sim_sub$cancer <- c(FALSE, 
-                                         sample(c(TRUE, FALSE), 
-                                                49, 
-                                                replace = TRUE, 
-                                                prob = c(0.6, 0.4)))
+                     #sim_sub$stroke <- c(FALSE, 
+                     #                    sample(c(TRUE, FALSE), 
+                     #                           49, 
+                     #                           replace = TRUE, 
+                     #                           prob = c(0.8, 0.2)))
+                     #sim_sub$diabetes <- c(FALSE, 
+                     #                      sample(c(TRUE, FALSE), 
+                     #                             49, 
+                     #                             replace = TRUE, 
+                     #                             prob = c(0.7, 0.3)))
+                     #sim_sub$cancer <- c(FALSE, 
+                     #                    sample(c(TRUE, FALSE), 
+                     #                           49, 
+                     #                           replace = TRUE, 
+                     #                           prob = c(0.8, 0.2)))
 
                      output$p_overall = renderPlot({
                          p1 <- ggplot(sim_dfr, aes(x = age)) + 
@@ -172,37 +173,56 @@ server = function(input, output){
                                    rel_heights = c(1, 0.2, 1))
                      })
 
+
                      output$p_diabetes = renderPlot({
-                         likelihood_vec <- likelihoodOf("diabetes")
-                         likelihood_dfr <- data.frame(age = factor(c("Overall", 5, 10, 20),
-                                                            levels = c(5, 10, 20, "Overall")),
+                         #likelihood_vec <- c(40, 12, 24)
+                         likelihood_vec <- likelihoodOf("diabetes", sim_sub, user_sample)
+                         likelihood_dfr <- data.frame(age = factor(c("Overall", 5, 10),
+                                                            levels = c(5, 10, "Overall")),
                                                l = likelihood_vec)
-                         ggplot(likelihood_dfr, aes(x = age, y = l)) + 
+                         ggplot(likelihood_dfr, aes(x = age, y = l, fill = age)) + 
                              geom_bar(stat = 'identity') + 
                              ylim(0, 100) + 
-                             theme_pander()
+                             labs(title = "Five-year, Ten-year and Lifetime Diabetes Risk",
+                                  x = "Years",
+                                  y = "% Risk") + 
+                             scale_fill_manual(values = pal2) + 
+                             theme_pander() +
+                             theme(legend.position = 'none')
                      })
 
                      output$p_stroke = renderPlot({
-                         likelihood_vec <- likelihoodOf("stroke")
-                         likelihood_dfr <- data.frame(age = factor(c("Overall", 5, 10, 20),
-                                                            levels = c(5, 10, 20, "Overall")),
+                         #likelihood_vec <- c(50, 17, 40)
+                         likelihood_vec <- likelihoodOf("stroke", sim_sub, user_sample)
+                         likelihood_dfr <- data.frame(age = factor(c("Overall", 5, 10),
+                                                            levels = c(5, 10, "Overall")),
                                                l = likelihood_vec)
-                         ggplot(likelihood_dfr, aes(x = age, y = l)) + 
+                         ggplot(likelihood_dfr, aes(x = age, y = l, fill = age)) + 
                              geom_bar(stat = 'identity') + 
                              ylim(0, 100) + 
-                             theme_pander()
+                             labs(title = "Five-year, Ten-year and Lifetime Stroke Risk",
+                                  x = "Years",
+                                  y = "% Risk") + 
+                             scale_fill_manual(values = pal2) + 
+                             theme_pander() +
+                             theme(legend.position = 'none')
                      })
 
                      output$p_cancer = renderPlot({
-                         likelihood_vec <- likelihoodOf("cancer")
-                         likelihood_dfr <- data.frame(age = factor(c("Overall", 5, 10, 20),
-                                                            levels = c(5, 10, 20, "Overall")),
+                         #likelihood_vec <- c(16, 8, 15)
+                         likelihood_vec <- likelihoodOf("cancer", sim_sub, user_sample)
+                         likelihood_dfr <- data.frame(age = factor(c("Overall", 5, 10),
+                                                            levels = c(5, 10, "Overall")),
                                                l = likelihood_vec)
-                         ggplot(likelihood_dfr, aes(x = age, y = l)) + 
+                         ggplot(likelihood_dfr, aes(x = age, y = l, fill = age)) + 
                              geom_bar(stat = 'identity') + 
                              ylim(0, 100) + 
-                             theme_pander()
+                             labs(title = "Five-year, Ten-year and Lifetime Cancer Risk",
+                                  x = "Years",
+                                  y = "% Risk") + 
+                             scale_fill_manual(values = pal2) + 
+                             theme_pander() +
+                             theme(legend.position = 'none')
                      })
                })
 }
